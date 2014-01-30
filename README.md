@@ -9,3 +9,7 @@ How to run
 ```
 sbt run
 ```
+
+License
+-------
+MIT License

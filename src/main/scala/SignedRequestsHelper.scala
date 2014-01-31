@@ -1,5 +1,6 @@
 /**
-* Ported from http://docs.aws.amazon.com/AWSECommerceService/latest/DG/AuthJavaSampleSig2.html
+* Based on:
+* http://docs.aws.amazon.com/AWSECommerceService/latest/DG/AuthJavaSampleSig2.html
 */
 
 package macondoventures
@@ -19,15 +20,17 @@ import org.apache.commons.codec.binary.Base64
 import scala.collection.immutable.TreeMap
 import scala.collection.immutable.SortedMap
 
-object SignedRequestsHelper {
+class SignedRequestsHelper(
+  awsAccessKeyId: String,
+  awsSecretKey: String,
+  endpoint: String = "webservices.amazon.com"
+) {
+  var toSign = ""
+
   private val UTF8_CHARSET = "UTF-8"
   private val HMAC_SHA256_ALGORITHM = "HmacSHA256"
   private val REQUEST_URI = "/onca/xml"
   private val REQUEST_METHOD = "GET"
-
-  private val endpoint = "webservices.amazon.com" // must be lowercase
-  private val awsAccessKeyId = "YOUR AWS ACCESS KEY"
-  private val awsSecretKey = "YOUR AWS SECRET KEY"
 
   private var secretKeySpec: SecretKeySpec = null
   private var mac: Mac = null
@@ -38,10 +41,13 @@ object SignedRequestsHelper {
   mac.init(secretKeySpec)
 
   def sign(params: Map[String, String]): String = {
-    val finalParams = params + ("AWSAccessKeyId" -> awsAccessKeyId) + ("Timestamp" -> timestamp())
+    var finalParams = params + ("AWSAccessKeyId" -> awsAccessKeyId) 
+    if (!finalParams.contains("Timestamp")) {
+      finalParams = finalParams + ("Timestamp" -> getTimestamp) 
+    }
     val sortedParamMap = TreeMap[String, String](finalParams.toList: _*)
     val canonicalQS = canonicalize(sortedParamMap)
-    val toSign =
+    toSign =
       REQUEST_METHOD + "\n" +
       endpoint + "\n" +
       REQUEST_URI + "\n" +
@@ -69,8 +75,7 @@ object SignedRequestsHelper {
     signature
   }
 
-  private def timestamp(): String = {
-    var timestamp: String = null
+  private def getTimestamp = {
     val cal = Calendar.getInstance()
     val dfm = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
     dfm.setTimeZone(TimeZone.getTimeZone("GMT"))
